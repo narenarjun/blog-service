@@ -2,7 +2,9 @@ syntax = "proto3";
 
 package blog;
 
-option go_package = "blog/blogpb;blogpbgen";
+option go_package = "blogpb;blogpbgen";
+
+// protoc generate command --> >> protoc ./blogpb/blog.proto --go_out=plugins=grpc:.
 
 message Blog {
     string id = 1;
