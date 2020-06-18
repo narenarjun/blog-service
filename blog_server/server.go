@@ -10,6 +10,7 @@ import (
 	"time"
 
 	blogpbgen "github.com/narenarjun/blog-service/blogpb"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -65,6 +66,41 @@ func (*server) CreateBlog(ctx context.Context, req *blogpbgen.CreateBlogRequest)
 			Content: blog.GetContent(),
 		},
 	} , nil
+}
+
+func (*server) ReadBlog( ctx context.Context, req *blogpbgen.ReadBlogRequest) (*blogpbgen.ReadBlogResponse, error){
+	fmt.Println("Read Blog Request")
+
+	blogID := req.GetBlogId()
+
+	oid, err := primitive.ObjectIDFromHex(blogID)
+	if err != nil{
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			fmt.Sprintf("Cannot Parse ID"),
+		)
+	}
+
+	//  empty interface for the blog
+	data := &blogitem{}
+	filter := bson.M{"_id":oid}
+
+	res := collection.FindOne(context.Background(),filter)
+ 	 if err := res.Decode(data); err != nil{
+		  return nil, status.Errorf(
+			  codes.NotFound,
+			  fmt.Sprintf("Cannot find blog with the given ID : %v\n", err),
+		  )
+	  }
+
+	  return &blogpbgen.ReadBlogResponse{
+		  Blog: &blogpbgen.Blog{
+			  Id: data.ID.Hex(),
+			  AuthorId: data.AuthorID,
+			  Content: data.Content,
+			  Title: data.Title,
+		  },
+	  }, nil
 }
 
 
