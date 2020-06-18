@@ -30,6 +30,15 @@ type blogitem struct{
 	Title 		string    			`bson:"title"`
 }
 
+func dataToBlog(data *blogitem) *blogpbgen.Blog{
+	return &blogpbgen.Blog{
+		Id: data.ID.Hex(),
+		AuthorId: data.AuthorID,
+		Content: data.Content,
+		Title: data.Title,
+	}
+}
+
 
 func (*server) CreateBlog(ctx context.Context, req *blogpbgen.CreateBlogRequest) (*blogpbgen.CreateBlogResponse, error){
 	
@@ -94,15 +103,53 @@ func (*server) ReadBlog( ctx context.Context, req *blogpbgen.ReadBlogRequest) (*
 	  }
 
 	  return &blogpbgen.ReadBlogResponse{
-		  Blog: &blogpbgen.Blog{
-			  Id: data.ID.Hex(),
-			  AuthorId: data.AuthorID,
-			  Content: data.Content,
-			  Title: data.Title,
-		  },
+		  Blog: dataToBlog(data),
 	  }, nil
 }
 
+
+
+
+
+func (*server) 	UpdateBlog(ctx context.Context, req *blogpbgen.UpdateBlogRequest) (*blogpbgen.UpdateBlogResponse, error) {
+	fmt.Println("Update Blog Request")
+
+	blog := req.GetBlog()
+	oid , err := primitive.ObjectIDFromHex(blog.GetId())
+	if err != nil{
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			fmt.Sprintf("Cannot Parse ID"),
+		)
+	}
+	data := &blogitem{}
+	filter := bson.M{"_id":oid}
+
+	res := collection.FindOne(context.Background(), filter)
+	if err := res.Decode(data); err != nil{
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("Cannot find blog with the given ID : %v\n", err),
+		)
+	}
+
+	data.AuthorID = blog.GetAuthorId()
+	data.Content = blog.GetContent()
+	data.Title = blog.GetTitle()
+
+	_, Updateerr := collection.ReplaceOne(context.Background(),filter,data)
+	if err != nil{
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Cannot update Object in MongoDB: %v\n",Updateerr),
+		)
+	}
+
+	return &blogpbgen.UpdateBlogResponse{
+		Blog: dataToBlog(data),
+	}, nil
+}
+ 
 
 func main(){
 	// if our program crashes, we get the file name and line number

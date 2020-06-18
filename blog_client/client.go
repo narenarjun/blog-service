@@ -25,9 +25,33 @@ func main() {
 
  blogID :=	createBlog(c)
 
-	readBlog(c, blogID)
+	// readBlog(c, blogID)
+
+	updateBlog(c, blogID)
 
 }
+
+func updateBlog(c blogpbgen.BlogServiceClient, bID string){
+
+	newBlog := &blogpbgen.Blog{
+		Id: bID,
+		AuthorId: "changed Author",
+		Content: "Power Squared (edited) ",
+		Title: "content of the infinite blog, made into invisible yet awesome",
+	}
+ res, err := c.UpdateBlog(context.Background(),&blogpbgen.UpdateBlogRequest{
+		Blog: newBlog,
+	})
+
+	if err != nil{
+		fmt.Printf("Error occured while updating the blog : %v\n", err)
+	}
+
+	fmt.Printf("Blog was updated : %v\n", res)
+
+}
+
+
 
 func readBlog(c blogpbgen.BlogServiceClient ,bID string){
 
