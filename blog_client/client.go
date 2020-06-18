@@ -27,9 +27,27 @@ func main() {
 
 	// readBlog(c, blogID)
 
-	updateBlog(c, blogID)
+	// updateBlog(c, blogID)
+
+	deleteBlog(c,blogID)
 
 }
+
+func deleteBlog( c blogpbgen.BlogServiceClient, bID string){
+
+	res, err := c.DeleteBlog(context.Background(), &blogpbgen.DeleteBlogRequest{
+		BlogId: bID,
+	})
+	if err != nil {
+		fmt.Printf("Error happended while deleting: %v \n ", err)
+	}
+
+	fmt.Printf("Blog was deleted: %v\n", res)
+
+
+
+}
+
 
 func updateBlog(c blogpbgen.BlogServiceClient, bID string){
 
