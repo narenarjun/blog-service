@@ -138,7 +138,7 @@ func (*server) 	UpdateBlog(ctx context.Context, req *blogpbgen.UpdateBlogRequest
 	data.Title = blog.GetTitle()
 
 	_, Updateerr := collection.ReplaceOne(context.Background(),filter,data)
-	if err != nil{
+	if Updateerr != nil{
 		return nil, status.Errorf(
 			codes.Internal,
 			fmt.Sprintf("Cannot update Object in MongoDB: %v\n",Updateerr),
@@ -150,6 +150,41 @@ func (*server) 	UpdateBlog(ctx context.Context, req *blogpbgen.UpdateBlogRequest
 	}, nil
 }
  
+
+func (*server) DeleteBlog( ctx context.Context,req *blogpbgen.DeleteBlogRequest) (*blogpbgen.DeleteBlogResponse, error){
+
+	fmt.Println("Blog Delete request")
+
+	oid , err := primitive.ObjectIDFromHex(req.GetBlogId())
+	if err != nil{
+		return nil, status.Errorf(
+			codes.InvalidArgument,
+			fmt.Sprintf("Cannot Parse ID"),
+		)
+	}
+	filter := bson.M{"_id":oid}
+
+ 	 res, err := collection.DeleteOne(context.Background(),filter)
+ 	 if err != nil{
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Cannot delete Object in MongoDB: %v\n",err),
+		)
+	}
+
+	if res.DeletedCount == 0 {
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("Cannot find Blog in MongoDb: %v\n", err),
+		)
+	}
+
+
+	return &blogpbgen.DeleteBlogResponse{
+		BlogId: req.GetBlogId(),
+	}, nil
+
+}
 
 func main(){
 	// if our program crashes, we get the file name and line number
