@@ -1,24 +1,63 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/signal"
+	"time"
 
 	blogpbgen "github.com/narenarjun/blog-service/blogpb"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
 )
 
+var collection *mongo.Collection
+
 type server struct{}
+
+type blogitem struct{
+	ID 			primitive.ObjectID 	`bson:"_id,omitempty"`
+	AuthorID 	string 				`bson:"author_id"`
+	Content 	string				`bson:"content"`
+	Title 		string    			`bson:"title"`
+}
 
 func main(){
 	// if our program crashes, we get the file name and line number
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
+	fmt.Println("Connecting to MongoDB")
+
+
+	// ! the mongodb  connection url must be supplied for it to work properly
+
+	// * connection to MongoDB
+	client, err :=  mongo.NewClient(options.Client().ApplyURI("mongodb+srv://<username>:<password>@grpc1cluster-rqxlq.mongodb.net/test"))
+
+	if err != nil { 
+		log.Fatalf("Error while connecting to mongodb: %v\n",err)
+		return 
+	}
+		
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	err = client.Connect(ctx)
+	if err != nil { 
+		log.Fatalf("Error while acquiring connection to database: %v\n",err)
+		return 
+	}
+
+	collection = client.Database("mydb").Collection("blog")
 
 	fmt.Println("Blog Service started")
+
+
+
 
 	// ! 50051 is the default port for grpc
 	lis, err := net.Listen("tcp", "0.0.0.0:50051")
@@ -48,5 +87,7 @@ func main(){
 	s.Stop()
 	fmt.Println("Closing the listener")
 	lis.Close()
+	fmt.Println("Closing MongoDb connection")
+	client.Disconnect(ctx)
 	fmt.Println("END of Program")
 }
