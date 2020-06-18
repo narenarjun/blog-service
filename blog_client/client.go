@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
 
 	blogpbgen "github.com/narenarjun/blog-service/blogpb"
@@ -23,15 +24,37 @@ func main() {
 	c := blogpbgen.NewBlogServiceClient(conn)
 
 
- blogID :=	createBlog(c)
+//  blogID :=	createBlog(c)
 
 	// readBlog(c, blogID)
 
 	// updateBlog(c, blogID)
 
-	deleteBlog(c,blogID)
+	// deleteBlog(c,blogID)
+
+	listBlog(c)
 
 }
+
+func listBlog(c blogpbgen.BlogServiceClient )  {
+
+    stream,err :=	c.ListBlog(context.Background(),&blogpbgen.ListBlogRequest{})
+	if err != nil{
+		log.Fatalf("error while requesting stream: %v\n",err)
+	}
+	for {
+		res, err := stream.Recv()
+		if err == io.EOF{
+			break
+		}
+		if err != nil{
+			log.Fatalf("Error happended: %v\n", err)
+		}
+
+		fmt.Println(res.GetBlog())
+	}
+}
+
 
 func deleteBlog( c blogpbgen.BlogServiceClient, bID string){
 
