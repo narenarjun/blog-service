@@ -14,6 +14,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var collection *mongo.Collection
@@ -26,6 +28,43 @@ type blogitem struct{
 	Content 	string				`bson:"content"`
 	Title 		string    			`bson:"title"`
 }
+
+
+func (*server) CreateBlog(ctx context.Context, req *blogpbgen.CreateBlogRequest) (*blogpbgen.CreateBlogResponse, error){
+	blog := req.GetBlog()
+
+	data := blogitem{
+		AuthorID: blog.GetAuthorId(),
+		Title: blog.GetTitle(),
+		Content: blog.GetContent(),
+	}
+
+	res,err := collection.InsertOne(context.Background(),data)
+	if err != nil {
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Internal Error : %v\n",err),
+		)
+	}
+
+	oid,ok := res.InsertedID.(primitive.ObjectID)
+	if !ok{
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Cannot convert to OID : %v\n",err),
+		)
+	}
+
+	return &blogpbgen.CreateBlogResponse{
+		Blog: &blogpbgen.Blog{
+			Id: oid.Hex(),
+			AuthorId: blog.GetAuthorId(),
+			Title: blog.GetTitle(),
+			Content: blog.GetContent(),
+		},
+	} , nil
+}
+
 
 func main(){
 	// if our program crashes, we get the file name and line number
